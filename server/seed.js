@@ -326,6 +326,18 @@ async function seed() {
             [q.title, q.description, q.difficulty, q.starter_code, q.test_cases]);
     }
     console.log(`✅ Successfully added ${questions.length} questions!`);
+
+    // Create default user for easy login
+    const bcrypt = require('bcryptjs'); // Need to require this if not already present, or move to top
+    // Since seed.js might not have bcrypt required, let's fix imports first or add it here if possible.
+    // Better strategy: Add require at top, use it here.
+
+    const hash = require('bcryptjs').hashSync('password', 10);
+    const existingUser = query(db, "SELECT id FROM users WHERE username = 'user'");
+    if (existingUser.length === 0) {
+        run(db, `INSERT INTO users (username, password, role) VALUES ('user', ?, 'user')`, [hash]);
+        console.log('✅ Default user auto-created: user / password');
+    }
 }
 
 // Run the seed function
