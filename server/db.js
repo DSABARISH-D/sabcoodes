@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const initSqlJs = require('sql.js');
+const bcrypt = require('bcryptjs');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'platform.db');
 let _db = null;
@@ -61,6 +62,14 @@ async function getDb() {
   // Migrate: add columns if they don't exist (for existing DBs)
   try { _db.run(`ALTER TABLE users ADD COLUMN allowed_languages TEXT DEFAULT '["java","python","javascript","cpp","c"]'`); } catch (e) { }
   try { _db.run(`ALTER TABLE users ADD COLUMN seen_questions TEXT DEFAULT '[]'`); } catch (e) { }
+
+  // Auto-create admin account if not exists (needed on Vercel cold start)
+  const existingAdmin = query(_db, "SELECT id FROM users WHERE username = 'admin'");
+  if (existingAdmin.length === 0) {
+    const hash = bcrypt.hashSync('admin123', 10);
+    _db.run(`INSERT INTO users (username, password, role) VALUES ('admin', '${hash}', 'admin')`);
+    console.log('✅ Admin auto-created: admin / admin123');
+  }
 
   save();
   return _db;
