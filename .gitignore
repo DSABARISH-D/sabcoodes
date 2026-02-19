@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Database (contains user data)
+server/platform.db
+server/*.db
+
+# Environment variables (contains secrets / API keys)
+server/.env
+.env
+
+# Logs and temp files
+*.log
+server/test_pdf*.js
+server/list_*.js
+server/seed_*.js
+
+# OS files
+.DS_Store
+Thumbs.db

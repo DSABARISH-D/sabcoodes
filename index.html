@@ -1,0 +1,2095 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sabcodes – Coding Test Platform</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --text3: #64748b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* ── AUTH SCREEN ── */
+    #authScreen {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 60% 40%, rgba(108, 99, 255, .15) 0%, transparent 60%), var(--bg);
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      width: 420px;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+    }
+
+    .auth-logo {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+
+    .auth-sub {
+      color: var(--text3);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 8px;
+      text-align: center;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text3);
+      transition: all .2s;
+    }
+
+    .auth-tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    input[type=text],
+    input[type=password] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      transition: border .2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* ── ADMIN SCREEN ── */
+    #adminScreen {
+      flex-direction: column;
+      background: var(--bg);
+    }
+
+    .admin-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 18px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .admin-tabs {
+      display: flex;
+      gap: 20px;
+    }
+
+    .atab {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text3);
+      cursor: pointer;
+      padding: 16px 0;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+
+    .atab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .admin-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .admin-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .ac-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .ac-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: var(--text3);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .action-btn {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      margin-right: 4px;
+    }
+
+    .action-btn.del:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      width: 400px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), #5b52e0);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all .2s;
+    }
+
+    .btn-primary:hover {
+      opacity: .9;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      transform: none;
+      cursor: not-allowed;
+    }
+
+    .auth-error {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    /* ── WORKSPACE SCREEN ── */
+    #workspaceScreen {
+      flex-direction: column;
+    }
+
+    header {
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .h-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      font-size: 16px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .assess-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .q-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+    }
+
+    .h-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+
+    .timer-wrap.warn {
+      color: var(--red);
+    }
+
+    .user-chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text2);
+    }
+
+    .btn-logout {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text3);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .btn-logout:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .workspace-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .left-panel {
+      width: 370px;
+      min-width: 260px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ptab {
+      flex: 1;
+      padding: 10px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text3);
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .2s;
+    }
+
+    .ptab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+    }
+
+    .tab-body::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .tab-body::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .q-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .q-nav-btn {
+      flex: 1;
+      padding: 7px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .q-nav-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(108, 99, 255, .1);
+    }
+
+    .prob-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .diff-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    .easy {
+      background: rgba(34, 197, 94, .15);
+      color: var(--green);
+    }
+
+    .medium {
+      background: rgba(245, 158, 11, .15);
+      color: var(--yellow);
+    }
+
+    .hard {
+      background: rgba(239, 68, 68, .15);
+      color: var(--red);
+    }
+
+    .prob-desc {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text2);
+      margin-bottom: 14px;
+      white-space: pre-wrap;
+    }
+
+    .sec-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 6px;
+    }
+
+    .io-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .tc-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .tc-dot {
+      border-radius: 6px;
+      padding: 7px 4px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text3);
+      transition: all .2s;
+    }
+
+    .tc-dot:hover {
+      border-color: var(--accent);
+    }
+
+    .tc-dot.pass {
+      border-color: var(--green);
+      background: rgba(34, 197, 94, .1);
+      color: var(--green);
+    }
+
+    .tc-dot.fail {
+      border-color: var(--red);
+      background: rgba(239, 68, 68, .1);
+      color: var(--red);
+    }
+
+    .tc-detail-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 12px;
+      font-size: 12px;
+    }
+
+    .tc-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 7px;
+      align-items: flex-start;
+    }
+
+    .tc-lbl {
+      color: var(--text3);
+      min-width: 55px;
+      font-size: 11px;
+      padding-top: 3px;
+    }
+
+    .tc-val {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      padding: 3px 7px;
+      border-radius: 4px;
+      flex: 1;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .editor-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .file-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text2);
+    }
+
+    .file-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent2);
+    }
+
+    .lang-sel {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .lang-sel:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .editor-btns {
+      display: flex;
+      gap: 7px;
+    }
+
+    .ebtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+
+    .ebtn-run {
+      background: var(--surface2);
+      color: var(--accent2);
+      border: 1px solid var(--accent2);
+    }
+
+    .ebtn-run:hover {
+      background: rgba(0, 212, 170, .1);
+    }
+
+    .ebtn-run:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .ebtn-submit {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+    }
+
+    .ebtn-submit:hover {
+      opacity: .9;
+    }
+
+    .ebtn-submit:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    #editorContainer {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .editor-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text3);
+      font-size: 13px;
+      gap: 8px;
+    }
+
+    /* ── CONSOLE ── */
+    .console-panel {
+      height: 190px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .con-header {
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding: 0 12px;
+    }
+
+    .con-tab {
+      padding: 8px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text3);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .con-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .con-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .con-half {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      gap: 3px;
+    }
+
+    .con-half:first-child {
+      border-right: 1px solid var(--border);
+    }
+
+    .con-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text3);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    textarea.con-area {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      resize: none;
+      outline: none;
+      line-height: 1.5;
+    }
+
+    .out-area {
+      flex: 1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text2);
+      line-height: 1.5;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .out-area.ok {
+      color: var(--green);
+    }
+
+    .out-area.err {
+      color: var(--red);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      height: 52px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+    }
+
+    .f-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .f-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .f-dot.active {
+      background: var(--accent);
+    }
+
+    .f-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .fnav {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 7px 16px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .fnav:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .fnav-submit {
+      background: linear-gradient(135deg, var(--accent), #5b52e0);
+      color: #fff;
+      border: none;
+    }
+
+    .fnav-submit:hover {
+      opacity: .9;
+    }
+
+    .fnav-submit:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    /* ── SCORE SCREEN ── */
+    #scoreScreen {
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(ellipse at 50% 30%, rgba(108, 99, 255, .2) 0%, transparent 60%), var(--bg);
+    }
+
+    .score-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      width: 680px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+    }
+
+    .score-card::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .score-card::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    .score-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .score-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      font-size: 32px;
+      font-weight: 800;
+      border: 4px solid;
+    }
+
+    .score-circle.great {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(34, 197, 94, .1);
+    }
+
+    .score-circle.ok {
+      border-color: var(--yellow);
+      color: var(--yellow);
+      background: rgba(245, 158, 11, .1);
+    }
+
+    .score-circle.poor {
+      border-color: var(--red);
+      color: var(--red);
+      background: rgba(239, 68, 68, .1);
+    }
+
+    .score-pct {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .score-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .score-sub {
+      color: var(--text3);
+      font-size: 14px;
+    }
+
+    .score-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .stat-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 2px;
+    }
+
+    .q-result {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .q-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .q-result-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .q-result-score {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .tc-result-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .tc-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .tc-icon.p {
+      background: rgba(34, 197, 94, .2);
+      color: var(--green);
+    }
+
+    .tc-icon.f {
+      background: rgba(239, 68, 68, .2);
+      color: var(--red);
+    }
+
+    .tc-info {
+      flex: 1;
+      color: var(--text2);
+    }
+
+    .tc-got {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text3);
+      font-size: 11px;
+    }
+
+    .btn-retry {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--accent), #5b52e0);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all .2s;
+    }
+
+    .btn-retry:hover {
+      opacity: .9;
+    }
+
+    /* ── RESIZER ── */
+    .resizer {
+      width: 4px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background .2s;
+    }
+
+    .resizer:hover {
+      background: var(--accent);
+    }
+
+    /* ── SPINNER ── */
+    .spin {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: sp .6s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 70px;
+      right: 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 999;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.ok {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .toast.err {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .toast.info {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── OVERLAY ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      display: none;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .overlay-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      max-width: 380px;
+    }
+
+    .overlay-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .overlay-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .overlay-sub {
+      font-size: 13px;
+      color: var(--text3);
+      margin-bottom: 20px;
+    }
+
+    .overlay-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .obtn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .2s;
+    }
+
+    .obtn-cancel {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+
+    .obtn-confirm {
+      background: linear-gradient(135deg, var(--green), #16a34a);
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══ AUTH SCREEN ══════════════════════════════════════════════════════════ -->
+  <div class="screen active" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-logo">⚡ CodeAssess</div>
+      <div class="auth-sub">Coding Test Platform</div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchAuthTab('login')">Login</div>
+        <div class="auth-tab" onclick="switchAuthTab('register')">Register</div>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="authUser" placeholder="Enter username" autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPass" placeholder="Enter password" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')doAuth()" />
+      </div>
+      <button class="btn-primary" id="authBtn" onclick="doAuth()">Login</button>
+      <div class="auth-error" id="authError"></div>
+    </div>
+  </div>
+
+  <!-- ══ ADMIN SCREEN ═════════════════════════════════════════════════════════ -->
+  <div class="screen" id="adminScreen">
+    <div class="admin-nav">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="logo">⚡ CodeAssess Admin</span>
+      </div>
+      <div class="admin-tabs">
+        <div class="atab active" onclick="switchAdminTab('users')">Users</div>
+        <div class="atab" onclick="switchAdminTab('questions')">Questions</div>
+        <div class="atab" onclick="switchAdminTab('stats')">Stats</div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="admin-body">
+      <!-- USERS TAB -->
+      <div id="atab-users">
+        <div class="admin-card">
+          <div class="ac-header">
+            <div class="ac-title">User Management</div>
+            <button class="ebtn ebtn-submit" onclick="openUserModal()">+ Create User</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Languages</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- QUESTIONS TAB -->
+      <div id="atab-questions" style="display:none">
+        <div class="admin-card">
+          <div class="ac-header">
+            <div class="ac-title">Question Bank</div>
+            <div style="display:flex;gap:10px;">
+              <input type="file" id="pdfUpload" accept=".pdf" style="display:none" onchange="uploadPdf(this)">
+              <button id="pdfUploadBtn" class="ebtn ebtn-run" onclick="document.getElementById('pdfUpload').click()">📄
+                Upload PDF</button>
+              <button class="ebtn ebtn-submit" onclick="openQuestionModal()">+ Add Question</button>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Difficulty</th>
+                <th>Test Cases</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="questionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- STATS TAB -->
+      <div id="atab-stats" style="display:none">
+        <div class="admin-card">
+          <div class="ac-header">
+            <div class="ac-title">Recent Submissions</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Session ID</th>
+                <th>User</th>
+                <th>Started</th>
+                <th>Score</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="statsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USER MODAL -->
+  <div class="modal" id="userModal">
+    <div class="modal-box">
+      <div class="modal-title">Create User</div>
+      <div class="form-group"><label>Username</label><input type="text" id="nuUser"></div>
+      <div class="form-group"><label>Password</label><input type="text" id="nuPass"></div>
+      <div class="form-group"><label>Allowed Languages (Msg: Ctrl+Click)</label>
+        <select id="nuLangs" multiple
+          style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px;border-radius:8px;height:100px;">
+          <option value="java">Java</option>
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript</option>
+          <option value="cpp">C++</option>
+          <option value="c">C</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="obtn obtn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="obtn obtn-confirm" onclick="createUser()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION MODAL -->
+  <div class="modal" id="questionModal">
+    <div class="modal-box" style="width:600px;">
+      <div class="modal-title">Add Question</div>
+      <div class="form-group"><label>Title</label><input type="text" id="nqTitle"></div>
+      <div class="form-group"><label>Description</label><textarea id="nqDesc" class="con-area"
+          style="height:80px;border:1px solid var(--border);border-radius:8px;padding:8px;"></textarea></div>
+      <div class="form-group"><label>Difficulty</label>
+        <select id="nqDiff" class="lang-sel" style="width:100%">
+          <option>Easy</option>
+          <option>Medium</option>
+          <option>Hard</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Test Cases (JSON Array)</label>
+        <textarea id="nqTests" class="con-area"
+          style="height:80px;border:1px solid var(--border);border-radius:8px;padding:8px;"
+          placeholder='[{"input":"1 2","expected":"3"}]'></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="obtn obtn-cancel" onclick="closeModals()">Cancel</button>
+        <button class="obtn obtn-confirm" onclick="createQuestion()">Add Question</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WORKSPACE SCREEN ═════════════════════════════════════════════════════ -->
+  <div class="screen" id="workspaceScreen">
+    <header>
+      <div class="h-left">
+        <span class="logo">⚡ CodeAssess</span>
+        <span style="color:var(--border)">|</span>
+        <span class="assess-title">Coding Assessment</span>
+        <span class="q-badge" id="qBadge">Q 1 of 2</span>
+      </div>
+      <div class="h-right">
+        <div class="timer-wrap" id="timerWrap">⏱ <span id="timerDisp">60:00</span></div>
+        <div class="user-chip" id="userChip">User</div>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="workspace-body">
+      <!-- LEFT -->
+      <div class="left-panel" id="leftPanel">
+        <div class="panel-tabs">
+          <button class="ptab active" onclick="switchPTab('problem',this)">Problem</button>
+          <button class="ptab" onclick="switchPTab('testcases',this)">Test Cases</button>
+        </div>
+        <div class="tab-body" id="ptab-problem"></div>
+        <div class="tab-body" id="ptab-testcases" style="display:none;"></div>
+      </div>
+
+      <div class="resizer" id="resizer"></div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="editor-bar">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="file-chip">
+              <div class="file-dot"></div><span id="fileName">Main.java</span>
+            </div>
+            <select class="lang-sel" id="langSel" onchange="changeLang()">
+              <option value="java">Java</option>
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+            </select>
+          </div>
+          <div class="editor-btns">
+            <button class="ebtn ebtn-run" id="runBtn" onclick="runCode()">▶ Run</button>
+            <button class="ebtn ebtn-submit" id="submitAllBtn" onclick="confirmSubmit()">✓ Submit Test</button>
+          </div>
+        </div>
+        <div id="editorContainer">
+          <div class="editor-loading">
+            <div class="spin"></div> Loading Editor…
+          </div>
+        </div>
+        <div class="console-panel">
+          <div class="con-header">
+            <div class="con-tab active">Console / Custom Input</div>
+          </div>
+          <div class="con-body">
+            <div class="con-half">
+              <div class="con-lbl">Custom Input</div>
+              <textarea class="con-area" id="customInput" placeholder="Enter input here…"></textarea>
+            </div>
+            <div class="con-half">
+              <div class="con-lbl">Output</div>
+              <div class="out-area" id="outputArea">Run your code to see output.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div class="f-dots" id="fDots"></div>
+      <div class="f-btns">
+        <button class="fnav" onclick="prevQ()">← Previous</button>
+        <button class="fnav" onclick="nextQ()">Next →</button>
+        <button class="fnav fnav-submit" id="submitFooterBtn" onclick="confirmSubmit()">🏁 Submit Final Test</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ══ SCORE SCREEN ══════════════════════════════════════════════════════════ -->
+  <div class="screen" id="scoreScreen">
+    <div class="score-card" id="scoreCard"></div>
+  </div>
+
+  <!-- ══ CONFIRM OVERLAY ══════════════════════════════════════════════════════ -->
+  <div class="overlay" id="confirmOverlay">
+    <div class="overlay-box">
+      <div class="overlay-icon">🏁</div>
+      <div class="overlay-title">Submit Final Test?</div>
+      <div class="overlay-sub">This will run all your code against all test cases and calculate your final score. You
+        cannot change answers after submitting.</div>
+      <div class="overlay-btns">
+        <button class="obtn obtn-cancel" onclick="closeOverlay()">Cancel</button>
+        <button class="obtn obtn-confirm" onclick="doSubmit()">Yes, Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = 'http://localhost:5000/api';
+    let token = localStorage.getItem('cp_token') || '';
+    let username = localStorage.getItem('cp_user') || '';
+    let userRole = localStorage.getItem('cp_role') || 'user';
+    let allowedLangs = [];
+    let sessionId = null;
+    let questions = [];
+    let currentQ = 0;
+    let currentLang = 'java';
+    let monacoEditor = null;
+    let userCode = {}; // {qIdx: {lang: code}}
+    let userLang = {}; // {qIdx: lang} — which language each question was last coded in
+    let testResults = {}; // {qIdx: []}
+    let timerSec = 60 * 60;
+    let timerInt = null;
+    let authMode = 'login';
+
+    // ── INIT ──────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      if (token) {
+        if (userRole === 'admin') loadAdminData();
+        else startWorkspace();
+      } else showScreen('authScreen');
+      initResizer();
+    });
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ── AUTH ──────────────────────────────────────────────────────────────────
+    function switchAuthTab(mode) {
+      authMode = mode;
+      document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && mode === 'login') || (i === 1 && mode === 'register')));
+      document.getElementById('authBtn').textContent = mode === 'login' ? 'Login' : 'Register';
+      document.getElementById('authError').textContent = '';
+    }
+
+    async function doAuth() {
+      const user = document.getElementById('authUser').value.trim();
+      const pass = document.getElementById('authPass').value;
+      if (!user || !pass) { document.getElementById('authError').textContent = 'Please fill in all fields'; return; }
+      const btn = document.getElementById('authBtn');
+      btn.disabled = true; btn.innerHTML = '<div class="spin" style="border-top-color:white;margin:0 auto;"></div>';
+      try {
+        const res = await fetch(`${API}/auth/${authMode}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        token = data.token;
+        username = data.username;
+        userRole = data.role || 'user';
+
+        localStorage.setItem('cp_token', token);
+        localStorage.setItem('cp_user', username);
+        localStorage.setItem('cp_role', userRole);
+
+        document.getElementById('authError').textContent = '';
+        if (userRole === 'admin') loadAdminData();
+        else startWorkspace();
+      } catch (e) {
+        document.getElementById('authError').textContent = e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = authMode === 'login' ? 'Login' : 'Register';
+      }
+    }
+
+    function logout() {
+      token = ''; username = '';
+      localStorage.removeItem('cp_token'); localStorage.removeItem('cp_user');
+      sessionId = null; questions = []; currentQ = 0;
+      userCode = {}; testResults = {};
+      clearInterval(timerInt);
+      showScreen('authScreen');
+    }
+
+    // ── WORKSPACE ─────────────────────────────────────────────────────────────
+    async function startWorkspace() {
+      showScreen('workspaceScreen');
+      document.getElementById('userChip').textContent = '👤 ' + username;
+      await startSession();
+      loadMonaco();
+      startTimer();
+    }
+
+    async function startSession() {
+      try {
+        const res = await apiFetch('/session/start', 'POST');
+        sessionId = res.sessionId;
+        questions = res.questions.map(q => ({
+          ...q,
+          testCases: JSON.parse(q.test_cases),
+          starterCode: JSON.parse(q.starter_code)
+        }));
+
+        // Filter language dropdown based on allowed
+        allowedLangs = res.allowedLanguages || ['java', 'python', 'javascript', 'cpp', 'c'];
+        updateLangDropdown();
+
+        questions.forEach((_, i) => { testResults[i] = questions[i].testCases.map(() => 'pending'); });
+        document.getElementById('qBadge').textContent = `Q 1 of ${questions.length}`;
+        renderFooterDots();
+        renderProblem();
+        renderTestCases();
+      } catch (e) {
+        showToast('Failed to load session: ' + e.message, 'err');
+      }
+    }
+
+    // ── TIMER ─────────────────────────────────────────────────────────────────
+    function startTimer() {
+      clearInterval(timerInt);
+      timerInt = setInterval(() => {
+        timerSec--;
+        if (timerSec <= 0) { clearInterval(timerInt); timerSec = 0; doSubmit(); }
+        const m = String(Math.floor(timerSec / 60)).padStart(2, '0');
+        const s = String(timerSec % 60).padStart(2, '0');
+        document.getElementById('timerDisp').textContent = `${m}:${s}`;
+        document.getElementById('timerWrap').className = 'timer-wrap' + (timerSec <= 300 ? ' warn' : '');
+      }, 1000);
+    }
+
+    // ── PROBLEM RENDER ────────────────────────────────────────────────────────
+    function renderProblem() {
+      if (!questions.length) return;
+      const q = questions[currentQ];
+      const tc = q.testCases[0] || {};
+      const sampleIn = tc.input || '';
+      const sampleOut = tc.expected || '';
+      document.getElementById('ptab-problem').innerHTML = `
+    <div class="q-nav">${questions.map((qq, i) => `<button class="q-nav-btn${i === currentQ ? ' active' : ''}" onclick="goToQ(${i})">Q${i + 1}: ${qq.title.split(' ').slice(0, 2).join(' ')}</button>`).join('')}</div>
+    <div class="prob-title">${q.title}</div>
+    <span class="diff-badge ${(q.difficulty || 'Easy').toLowerCase()}">${q.difficulty || 'Easy'}</span>
+    <div class="prob-desc">${q.description}</div>
+    <div class="sec-label">Sample Input</div>
+    <div class="io-box">${sampleIn}</div>
+    <div class="sec-label">Sample Output</div>
+    <div class="io-box">${sampleOut}</div>
+  `;
+      document.getElementById('qBadge').textContent = `Q ${currentQ + 1} of ${questions.length}`;
+      renderFooterDots();
+    }
+
+    function renderTestCases() {
+      if (!questions.length) return;
+      const q = questions[currentQ];
+      const res = testResults[currentQ] || [];
+      document.getElementById('ptab-testcases').innerHTML = `
+    <div class="sec-label" style="margin-bottom:10px;">Test Cases (${q.testCases.length} total)</div>
+    <div class="tc-grid">${q.testCases.map((tc, i) => `<div class="tc-dot ${res[i] || 'pending'}" onclick="showTcDetail(${i})">${i + 1}<br>${res[i] === 'pass' ? '✓' : res[i] === 'fail' ? '✗' : '—'}</div>`).join('')}</div>
+    <div class="tc-detail-box" id="tcDetailBox"><div style="color:var(--text3)">Run tests to see details.</div></div>
+  `;
+    }
+
+    function showTcDetail(i) {
+      const q = questions[currentQ];
+      const tc = q.testCases[i];
+      const res = testResults[currentQ][i];
+      document.getElementById('tcDetailBox').innerHTML = `
+    <div style="font-size:12px;font-weight:700;color:${res === 'pass' ? 'var(--green)' : res === 'fail' ? 'var(--red)' : 'var(--text3)'};margin-bottom:8px;">Case ${i + 1} — ${res === 'pass' ? '✓ Passed' : res === 'fail' ? '✗ Failed' : 'Not Run'}</div>
+    <div class="tc-row"><span class="tc-lbl">Input</span><span class="tc-val">${tc.input}</span></div>
+    <div class="tc-row"><span class="tc-lbl">Expected</span><span class="tc-val">${tc.expected}</span></div>
+    ${tc._got !== undefined ? `<div class="tc-row"><span class="tc-lbl">Got</span><span class="tc-val" style="color:${res === 'pass' ? 'var(--green)' : 'var(--red)'}">${tc._got || '(empty)'}</span></div>` : ''}
+  `;
+    }
+
+    function renderFooterDots() {
+      document.getElementById('fDots').innerHTML = questions.map((_, i) => `<div class="f-dot${i === currentQ ? ' active' : ''}" onclick="goToQ(${i})"></div>`).join('');
+    }
+
+    // ── NAVIGATION ────────────────────────────────────────────────────────────
+    function goToQ(idx) {
+      saveCode();
+      currentQ = idx;
+      renderProblem();
+      renderTestCases();
+      if (monacoEditor) {
+        monacoEditor.setValue(getCode());
+        const lm = { java: 'java', python: 'python', javascript: 'javascript', cpp: 'cpp' };
+        monaco.editor.setModelLanguage(monacoEditor.getModel(), lm[currentLang]);
+      }
+    }
+    function prevQ() { if (currentQ > 0) goToQ(currentQ - 1); }
+    function nextQ() { if (currentQ < questions.length - 1) goToQ(currentQ + 1); }
+
+    // ── EDITOR ────────────────────────────────────────────────────────────────
+    function loadMonaco() {
+      require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+      require(['vs/editor/editor.main'], () => {
+        document.getElementById('editorContainer').innerHTML = '';
+        monacoEditor = monaco.editor.create(document.getElementById('editorContainer'), {
+          value: getCode(), language: 'java', theme: 'vs-dark',
+          fontSize: 14, fontFamily: "'JetBrains Mono', monospace",
+          minimap: { enabled: false }, scrollBeyondLastLine: false,
+          lineNumbers: 'on', renderLineHighlight: 'all',
+          padding: { top: 12, bottom: 12 }, automaticLayout: true
+        });
+        monaco.editor.defineTheme('ca', { base: 'vs-dark', inherit: true, rules: [], colors: { 'editor.background': '#0f1117', 'editor.lineHighlightBackground': '#1a1d27' } });
+        monaco.editor.setTheme('ca');
+      });
+    }
+
+    function getCode() {
+      if (!questions.length) return '// Loading...';
+      const q = questions[currentQ];
+      return userCode[currentQ]?.[currentLang] ?? (q.starterCode?.[currentLang] || '// Write your code here');
+    }
+
+    function saveCode() {
+      if (!monacoEditor) return;
+      if (!userCode[currentQ]) userCode[currentQ] = {};
+      userCode[currentQ][currentLang] = monacoEditor.getValue();
+      userLang[currentQ] = currentLang; // track which language this question was coded in
+    }
+
+    function changeLang() {
+      saveCode();
+      currentLang = document.getElementById('langSel').value;
+      const names = { java: 'Main.java', python: 'solution.py', javascript: 'solution.js', cpp: 'main.cpp', c: 'main.c' };
+      document.getElementById('fileName').textContent = names[currentLang] || 'solution';
+      if (monacoEditor) {
+        const lm = { java: 'java', python: 'python', javascript: 'javascript', cpp: 'cpp', c: 'c' };
+        monaco.editor.setModelLanguage(monacoEditor.getModel(), lm[currentLang] || 'plaintext');
+        monacoEditor.setValue(getCode());
+      }
+    }
+
+    // ── RUN CODE ──────────────────────────────────────────────────────────────
+    async function runCode() {
+      saveCode();
+      const btn = document.getElementById('runBtn');
+      btn.disabled = true; btn.innerHTML = '<div class="spin"></div>';
+      const out = document.getElementById('outputArea');
+      out.className = 'out-area'; out.textContent = 'Running…';
+      try {
+        const res = await apiFetch('/run', 'POST', {
+          code: monacoEditor.getValue(),
+          language: currentLang,
+          stdin: document.getElementById('customInput').value || (questions[currentQ]?.testCases[0]?.input || '')
+        });
+        if (res.stderr) { out.className = 'out-area err'; out.textContent = '❌ Error:\n' + res.stderr; }
+        else { out.className = 'out-area ok'; out.textContent = res.stdout || '(no output)'; }
+      } catch (e) {
+        out.className = 'out-area err'; out.textContent = '❌ ' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '▶ Run';
+      }
+    }
+
+    // ── SUBMIT ────────────────────────────────────────────────────────────────
+    function confirmSubmit() { document.getElementById('confirmOverlay').classList.add('show'); }
+    function closeOverlay() { document.getElementById('confirmOverlay').classList.remove('show'); }
+
+    async function doSubmit() {
+      closeOverlay();
+      saveCode();
+      const btn = document.getElementById('submitAllBtn');
+      const fbtn = document.getElementById('submitFooterBtn');
+      btn.disabled = true; fbtn.disabled = true;
+      btn.innerHTML = '<div class="spin"></div> Checking…';
+      showToast('Running all test cases… please wait', 'info');
+
+      try {
+        const answers = questions.map((q, i) => {
+          const lang = userLang[i] || currentLang;
+          const code = userCode[i]?.[lang] ?? (q.starterCode?.[lang] || '');
+          return { questionId: q.id, code, language: lang };
+        });
+        const res = await apiFetch('/submit', 'POST', { sessionId, answers });
+        clearInterval(timerInt);
+        showScoreScreen(res);
+      } catch (e) {
+        showToast('Submit failed: ' + e.message, 'err');
+        btn.disabled = false; fbtn.disabled = false;
+        btn.textContent = '✓ Submit Test';
+      }
+    }
+
+    // ── SCORE SCREEN ──────────────────────────────────────────────────────────
+    function showScoreScreen(data) {
+      const pct = data.score;
+      const cls = pct >= 70 ? 'great' : pct >= 40 ? 'ok' : 'poor';
+      const emoji = pct >= 70 ? '🎉' : pct >= 40 ? '👍' : '💪';
+      const msg = pct >= 70 ? 'Great Job!' : pct >= 40 ? 'Good Effort!' : 'Keep Practicing!';
+
+      const qResultsHTML = data.results.map(r => `
+    <div class="q-result">
+      <div class="q-result-header">
+        <div class="q-result-title">${r.title}</div>
+        <div class="q-result-score" style="color:${r.passed === r.total ? 'var(--green)' : 'var(--yellow)'}">${r.passed}/${r.total} passed</div>
+      </div>
+      ${r.testCases.map((tc, i) => `
+        <div class="tc-result-row">
+          <div class="tc-icon ${tc.passed ? 'p' : 'f'}">${tc.passed ? '✓' : '✗'}</div>
+          <div class="tc-info">Case ${i + 1}: <span style="font-family:'JetBrains Mono',monospace;font-size:11px;">${tc.input.replace(/\n/g, '↵')}</span></div>
+          <div class="tc-got">${tc.passed ? '✓ Correct' : 'Got: ' + (tc.got || 'empty')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+      document.getElementById('scoreCard').innerHTML = `
+    <div class="score-header">
+      <div class="score-circle ${cls}"><span>${pct}%</span><span class="score-pct">Score</span></div>
+      <div class="score-title">${emoji} ${msg}</div>
+      <div class="score-sub">Assessment complete · Submitted by ${username}</div>
+    </div>
+    <div class="score-stats">
+      <div class="stat-box"><div class="stat-num">${data.totalPassed}</div><div class="stat-lbl">Tests Passed</div></div>
+      <div class="stat-box"><div class="stat-num">${data.totalTests}</div><div class="stat-lbl">Total Tests</div></div>
+      <div class="stat-box"><div class="stat-num" style="color:${pct >= 70 ? 'var(--green)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)'}">${pct}%</div><div class="stat-lbl">Final Score</div></div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;">Detailed Results</div>
+    ${qResultsHTML}
+    <button class="btn-retry" onclick="logout()">🔄 Start New Test (Logout)</button>
+  `;
+      showScreen('scoreScreen');
+    }
+
+    // ── TABS ──────────────────────────────────────────────────────────────────
+    function switchPTab(name, btn) {
+      document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ['problem', 'testcases'].forEach(t => {
+        document.getElementById('ptab-' + t).style.display = t === name ? 'block' : 'none';
+      });
+    }
+
+    // ── RESIZER ───────────────────────────────────────────────────────────────
+    function initResizer() {
+      const r = document.getElementById('resizer');
+      const lp = document.getElementById('leftPanel');
+      let drag = false, sx, sw;
+      r.addEventListener('mousedown', e => { drag = true; sx = e.clientX; sw = lp.offsetWidth; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; });
+      document.addEventListener('mousemove', e => { if (!drag) return; lp.style.width = Math.min(Math.max(sw + e.clientX - sx, 220), 580) + 'px'; });
+      document.addEventListener('mouseup', () => { drag = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; });
+    }
+
+    // ── API HELPER ────────────────────────────────────────────────────────────
+    async function apiFetch(path, method = 'GET', body = null) {
+      const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Request failed');
+      return data;
+    }
+
+    // ── TOAST ─────────────────────────────────────────────────────────────────
+    function showToast(msg, type = 'ok') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = `toast ${type} show`;
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+    // ── ADMIN PANEL LOGIC ─────────────────────────────────────────────────────
+    function switchAdminTab(tab) {
+      document.querySelectorAll('.atab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.atab').forEach(t => { if (t.textContent.toLowerCase().includes(tab)) t.classList.add('active'); });
+      ['users', 'questions', 'stats'].forEach(t => document.getElementById('atab-' + t).style.display = t === tab ? 'block' : 'none');
+      if (tab === 'users') loadUsers();
+      if (tab === 'questions') loadQuestions();
+      if (tab === 'stats') loadStats();
+    }
+
+    async function loadAdminData() {
+      showScreen('adminScreen');
+      loadUsers();
+    }
+
+    async function loadUsers() {
+      try {
+        const users = await apiFetch('/admin/users');
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = users.map(u => `
+          <tr>
+            <td>${u.id}</td>
+            <td>${u.username} <span style="font-size:10px;color:var(--text3)">${u.role}</span></td>
+            <td>${u.allowed_languages.join(', ')}</td>
+            <td>${new Date(u.created_at).toLocaleDateString()}</td>
+            <td><button class="action-btn del" onclick="deleteUser(${u.id})">Del</button></td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function createUser() {
+      const u = document.getElementById('nuUser').value;
+      const p = document.getElementById('nuPass').value;
+      const ls = Array.from(document.getElementById('nuLangs').selectedOptions).map(o => o.value);
+      if (!u || !p) return alert('Username & Password required');
+      try {
+        await apiFetch('/admin/users', 'POST', { username: u, password: p, allowed_languages: ls });
+        closeModals();
+        loadUsers();
+        alert('User created!');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Delete user?')) return;
+      await apiFetch('/admin/users/' + id, 'DELETE');
+      loadUsers();
+    }
+
+    async function loadQuestions() {
+      try {
+        const qs = await apiFetch('/admin/questions');
+        document.getElementById('questionTableBody').innerHTML = qs.map(q => `
+          <tr>
+            <td>${q.id}</td>
+            <td>${q.title}</td>
+            <td><span class="diff-badge ${q.difficulty.toLowerCase()}">${q.difficulty}</span></td>
+            <td>${q.test_cases.length} cases</td>
+            <td><button class="action-btn del" onclick="deleteQuestion(${q.id})">Del</button></td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function createQuestion() {
+      const t = document.getElementById('nqTitle').value;
+      const d = document.getElementById('nqDesc').value;
+      const diff = document.getElementById('nqDiff').value;
+      const tc = document.getElementById('nqTests').value;
+      try {
+        await apiFetch('/admin/questions', 'POST', {
+          title: t, description: d, difficulty: diff,
+          test_cases: JSON.parse(tc), starter_code: {}
+        });
+        closeModals();
+        loadQuestions();
+        alert('Question added!');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function deleteQuestion(id) {
+      if (!confirm('Delete question?')) return;
+      await apiFetch('/admin/questions/' + id, 'DELETE');
+      loadQuestions();
+    }
+
+    async function loadStats() {
+      try {
+        const stats = await apiFetch('/admin/stats');
+        document.getElementById('statsTableBody').innerHTML = stats.map(s => {
+          const detailsHtml = s.details ? s.details.map(d => `
+                <div style="font-size:11px;margin-top:2px;color:var(--text2)">
+                    • <b>${d.title}</b>: <span style="color:${d.passed === d.total ? 'var(--green)' : 'var(--red)'}">${d.passed}/${d.total}</span>
+                </div>
+            `).join('') : '';
+
+          return `
+          <tr>
+            <td>${s.id}</td>
+            <td>${s.username}</td>
+            <td>${new Date(s.started_at).toLocaleString()}</td>
+            <td>${s.score !== null ? s.score + '%' : '-'}</td>
+            <td>${s.status}</td>
+            <td>${detailsHtml || '<span style="color:var(--text3)">-</span>'}</td>
+          </tr>
+        `}).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function uploadPdf(input) {
+      if (!input.files || !input.files[0]) return;
+      const file = input.files[0];
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const btn = document.getElementById('pdfUploadBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Extracting...';
+
+      try {
+        const res = await fetch(API + '/admin/upload-pdf', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        // Show the manual form with extracted text pre-filled
+        showPdfForm(data.text);
+      } catch (e) {
+        alert('❌ Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📄 Upload PDF';
+        input.value = '';
+      }
+    }
+
+    function showPdfForm(extractedText) {
+      document.getElementById('pdfTitle').value = '';
+      document.getElementById('pdfDescription').value = extractedText || '';
+      document.getElementById('pdfDifficulty').value = 'Medium';
+      document.getElementById('pdfModal').style.display = 'flex';
+    }
+
+    function closePdfModal() {
+      document.getElementById('pdfModal').style.display = 'none';
+    }
+
+    async function savePdfQuestion() {
+      const title = document.getElementById('pdfTitle').value.trim();
+      const description = document.getElementById('pdfDescription').value.trim();
+      const difficulty = document.getElementById('pdfDifficulty').value;
+
+      if (!title || !description) { alert('Title and description are required.'); return; }
+
+      // Build 6 empty test cases from the inputs
+      const test_cases = [];
+      for (let i = 1; i <= 6; i++) {
+        const inp = document.getElementById('pdfInput' + i)?.value || '';
+        const exp = document.getElementById('pdfExpected' + i)?.value || '';
+        if (inp || exp) test_cases.push({ input: inp, expected: exp });
+      }
+
+      const res = await fetch(API + '/admin/save-question', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, difficulty, test_cases })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert('❌ ' + data.error); return; }
+      alert('✅ Question "' + data.title + '" saved!');
+      closePdfModal();
+      loadQuestions();
+    }
+
+
+    function updateLangDropdown() {
+      const sel = document.getElementById('langSel');
+      const prev = sel.value;
+      sel.innerHTML = '';
+      allowedLangs.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l;
+        opt.textContent = l === 'cpp' ? 'C++' : l.charAt(0).toUpperCase() + l.slice(1);
+        sel.appendChild(opt);
+      });
+      if (allowedLangs.includes(prev)) sel.value = prev;
+      else if (allowedLangs.length > 0) sel.value = allowedLangs[0];
+      currentLang = sel.value;
+      changeLang();
+    }
+
+    function openUserModal() { document.getElementById('userModal').classList.add('show'); }
+    function openQuestionModal() { document.getElementById('questionModal').classList.add('show'); }
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.classList.remove('show')); }
+
+  </script>
+
+  <!-- PDF Question Review Modal -->
+  <div id="pdfModal"
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;overflow-y:auto;">
+    <div
+      style="background:#1e1e2e;border:1px solid #333;border-radius:12px;padding:28px;width:min(680px,95vw);max-height:90vh;overflow-y:auto;margin:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <h3 style="color:#7c6af7;margin:0;">📄 Create Question from PDF</h3>
+        <button onclick="closePdfModal()"
+          style="background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;">✕</button>
+      </div>
+      <label style="color:#aaa;font-size:12px;">TITLE</label>
+      <input id="pdfTitle" placeholder="e.g. Two Sum"
+        style="width:100%;box-sizing:border-box;padding:10px;margin:6px 0 14px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;">
+      <label style="color:#aaa;font-size:12px;">DIFFICULTY</label>
+      <select id="pdfDifficulty"
+        style="width:100%;box-sizing:border-box;padding:10px;margin:6px 0 14px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;">
+        <option>Easy</option>
+        <option selected>Medium</option>
+        <option>Hard</option>
+      </select>
+      <label style="color:#aaa;font-size:12px;">DESCRIPTION (edit the extracted PDF text below)</label>
+      <textarea id="pdfDescription" rows="8"
+        style="width:100%;box-sizing:border-box;padding:10px;margin:6px 0 14px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;font-size:13px;resize:vertical;"></textarea>
+      <label style="color:#aaa;font-size:12px;">TEST CASES (Input → Expected Output)</label>
+      <div id="pdfTestCases" style="margin:8px 0 18px;">
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput1" placeholder="Input 1"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected1" placeholder="Expected 1"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput2" placeholder="Input 2"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected2" placeholder="Expected 2"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput3" placeholder="Input 3"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected3" placeholder="Expected 3"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput4" placeholder="Input 4"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected4" placeholder="Expected 4"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput5" placeholder="Input 5"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected5" placeholder="Expected 5"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;"><input id="pdfInput6" placeholder="Input 6"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"><input
+            id="pdfExpected6" placeholder="Expected 6"
+            style="flex:1;padding:8px;background:#12121c;border:1px solid #333;border-radius:8px;color:#fff;"></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="closePdfModal()"
+          style="padding:10px 20px;background:#333;border:none;border-radius:8px;color:#fff;cursor:pointer;">Cancel</button>
+        <button onclick="savePdfQuestion()"
+          style="padding:10px 24px;background:#7c6af7;border:none;border-radius:8px;color:#fff;cursor:pointer;font-weight:600;">💾
+          Save Question</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
