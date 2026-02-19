@@ -17,18 +17,66 @@
     }
 
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #22263a;
-      --border: #2e3250;
-      --accent: #6c63ff;
-      --accent2: #00d4aa;
-      --green: #22c55e;
-      --red: #ef4444;
-      --yellow: #f59e0b;
-      --text: #e2e8f0;
-      --text2: #94a3b8;
-      --text3: #64748b;
+      /* Dark Theme (Reverted) */
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --accent: #2f81f7;
+      --accent2: #a371f7;
+      --green: #238636;
+      --red: #da3633;
+      --yellow: #d29922;
+      --text: #c9d1d9;
+      --text2: #8b949e;
+      --text3: #6e7681;
+
+      /* Editor Specific */
+      --editor-bg: #0d1117;
+      --editor-fg: #c9d1d9;
+    }
+
+    /* Overrides for specific dark areas */
+    #editorContainer,
+    .monaco-editor,
+    .monaco-editor-background,
+    .monaco-editor .inputarea.ime-input {
+      background-color: var(--editor-bg) !important;
+    }
+
+    /* Custom Test Result Styles */
+    .tc-result-box {
+      margin-top: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 15px;
+    }
+
+    .tc-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .tc-item.pass {
+      border-left-color: var(--green);
+      background: rgba(35, 134, 54, 0.15);
+    }
+
+    .tc-item.fail {
+      border-left-color: var(--red);
+      background: rgba(218, 54, 51, 0.15);
+    }
+
+    .tc-item.running {
+      border-left-color: var(--accent);
+      opacity: 0.7;
     }
 
     body {
@@ -1414,6 +1462,10 @@
             </select>
           </div>
           <div class="editor-btns">
+            <label
+              style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:15px;color:var(--text);font-size:13px;">
+              <input type="checkbox" id="useCustomInput"> Custom Input
+            </label>
             <button class="ebtn ebtn-run" id="runBtn" onclick="runCode()">▶ Run</button>
             <button class="ebtn ebtn-submit" id="submitAllBtn" onclick="confirmSubmit()">✓ Submit Test</button>
           </div>
@@ -1604,45 +1656,40 @@
     function renderProblem() {
       if (!questions.length) return;
       const q = questions[currentQ];
-      const tc = q.testCases[0] || {};
-      const sampleIn = tc.input || '';
-      const sampleOut = tc.expected || '';
+
+      // Render Problem + Test Case Container (Tabs removed for simplicity/requirement)
       document.getElementById('ptab-problem').innerHTML = `
-    <div class="q-nav">${questions.map((qq, i) => `<button class="q-nav-btn${i === currentQ ? ' active' : ''}" onclick="goToQ(${i})">Q${i + 1}: ${qq.title.split(' ').slice(0, 2).join(' ')}</button>`).join('')}</div>
-    <div class="prob-title">${q.title}</div>
-    <span class="diff-badge ${(q.difficulty || 'Easy').toLowerCase()}">${q.difficulty || 'Easy'}</span>
-    <div class="prob-desc">${q.description}</div>
-    <div class="sec-label">Sample Input</div>
-    <div class="io-box">${sampleIn}</div>
-    <div class="sec-label">Sample Output</div>
-    <div class="io-box">${sampleOut}</div>
-  `;
+        <div class="q-nav">${questions.map((qq, i) => `<button class="q-nav-btn${i === currentQ ? ' active' : ''}" onclick="goToQ(${i})">Q${i + 1}</button>`).join('')}</div>
+        <div class="prob-title">${q.title}</div>
+        <span class="diff-badge ${(q.difficulty || 'Easy').toLowerCase()}">${q.difficulty || 'Easy'}</span>
+        <div class="prob-desc">${q.description}</div>
+        
+        <div class="sec-label">Sample Cases</div>
+        ${q.testCases.slice(0, 2).map((tc, i) => `
+          <div style="margin-bottom:10px;padding:10px;background:var(--surface2);border-radius:6px;font-size:13px;font-family:'JetBrains Mono',monospace;">
+            <strong>Input:</strong> ${tc.input.replace(/\n/g, ' ')}<br>
+            <strong>Output:</strong> ${tc.expected}
+          </div>
+        `).join('')}
+
+        <div class="tc-result-box">
+          <div class="sec-label">Hidden Test Cases (Run to Check)</div>
+          <div id="testResultsContainer">
+            <div style="color:var(--text3);font-size:13px;padding:10px;text-align:center;background:var(--surface2);border-radius:4px;">
+              Click 'Run' to execute test cases.
+            </div>
+          </div>
+        </div>
+      `;
       document.getElementById('qBadge').textContent = `Q ${currentQ + 1} of ${questions.length}`;
       renderFooterDots();
     }
 
     function renderTestCases() {
-      if (!questions.length) return;
-      const q = questions[currentQ];
-      const res = testResults[currentQ] || [];
-      document.getElementById('ptab-testcases').innerHTML = `
-    <div class="sec-label" style="margin-bottom:10px;">Test Cases (${q.testCases.length} total)</div>
-    <div class="tc-grid">${q.testCases.map((tc, i) => `<div class="tc-dot ${res[i] || 'pending'}" onclick="showTcDetail(${i})">${i + 1}<br>${res[i] === 'pass' ? '✓' : res[i] === 'fail' ? '✗' : '—'}</div>`).join('')}</div>
-    <div class="tc-detail-box" id="tcDetailBox"><div style="color:var(--text3)">Run tests to see details.</div></div>
-  `;
+      // Deprecated by inline rendering, but kept empty/stubbed to avoid errors if called
     }
 
-    function showTcDetail(i) {
-      const q = questions[currentQ];
-      const tc = q.testCases[i];
-      const res = testResults[currentQ][i];
-      document.getElementById('tcDetailBox').innerHTML = `
-    <div style="font-size:12px;font-weight:700;color:${res === 'pass' ? 'var(--green)' : res === 'fail' ? 'var(--red)' : 'var(--text3)'};margin-bottom:8px;">Case ${i + 1} — ${res === 'pass' ? '✓ Passed' : res === 'fail' ? '✗ Failed' : 'Not Run'}</div>
-    <div class="tc-row"><span class="tc-lbl">Input</span><span class="tc-val">${tc.input}</span></div>
-    <div class="tc-row"><span class="tc-lbl">Expected</span><span class="tc-val">${tc.expected}</span></div>
-    ${tc._got !== undefined ? `<div class="tc-row"><span class="tc-lbl">Got</span><span class="tc-val" style="color:${res === 'pass' ? 'var(--green)' : 'var(--red)'}">${tc._got || '(empty)'}</span></div>` : ''}
-  `;
-    }
+    function showTcDetail(i) { } // Deprecated
 
     function renderFooterDots() {
       document.getElementById('fDots').innerHTML = questions.map((_, i) => `<div class="f-dot${i === currentQ ? ' active' : ''}" onclick="goToQ(${i})"></div>`).join('');
@@ -1653,11 +1700,10 @@
       saveCode();
       currentQ = idx;
       renderProblem();
-      renderTestCases();
       if (monacoEditor) {
         monacoEditor.setValue(getCode());
-        const lm = { java: 'java', python: 'python', javascript: 'javascript', cpp: 'cpp' };
-        monaco.editor.setModelLanguage(monacoEditor.getModel(), lm[currentLang]);
+        const lm = { java: 'java', python: 'python', javascript: 'javascript', cpp: 'cpp', c: 'c' };
+        monaco.editor.setModelLanguage(monacoEditor.getModel(), lm[currentLang] || 'plaintext');
       }
     }
     function prevQ() { if (currentQ > 0) goToQ(currentQ - 1); }
@@ -1667,14 +1713,7 @@
     function loadMonaco() {
       require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
       require(['vs/editor/editor.main'], () => {
-        document.getElementById('editorContainer').innerHTML = '';
-        monacoEditor = monaco.editor.create(document.getElementById('editorContainer'), {
-          value: getCode(), language: 'java', theme: 'vs-dark',
-          fontSize: 14, fontFamily: "'JetBrains Mono', monospace",
-          minimap: { enabled: false }, scrollBeyondLastLine: false,
-          lineNumbers: 'on', renderLineHighlight: 'all',
-          padding: { top: 12, bottom: 12 }, automaticLayout: true
-        });
+        // Define theme FIRST
         monaco.editor.defineTheme('ca', {
           base: 'vs-dark',
           inherit: true,
@@ -1690,15 +1729,23 @@
             { token: 'variable', foreground: 'e06c75' }
           ],
           colors: {
-            'editor.background': '#0f1117',
+            'editor.background': '#1e1e1e',
             'editor.foreground': '#abb2bf',
-            'editor.lineHighlightBackground': '#1a1d27',
+            'editor.lineHighlightBackground': '#2c313a',
             'editorCursor.foreground': '#528bff',
             'editor.selectionBackground': '#3e4451',
             'editor.inactiveSelectionBackground': '#3e445180'
           }
         });
-        monaco.editor.setTheme('ca');
+
+        document.getElementById('editorContainer').innerHTML = '';
+        monacoEditor = monaco.editor.create(document.getElementById('editorContainer'), {
+          value: getCode(), language: 'java', theme: 'ca',
+          fontSize: 14, fontFamily: "'JetBrains Mono', monospace",
+          minimap: { enabled: false }, scrollBeyondLastLine: false,
+          lineNumbers: 'on', renderLineHighlight: 'all',
+          padding: { top: 12, bottom: 12 }, automaticLayout: true
+        });
       });
     }
 
@@ -1712,14 +1759,15 @@
       if (!monacoEditor) return;
       if (!userCode[currentQ]) userCode[currentQ] = {};
       userCode[currentQ][currentLang] = monacoEditor.getValue();
-      userLang[currentQ] = currentLang; // track which language this question was coded in
+      userLang[currentQ] = currentLang;
     }
 
     function changeLang() {
       saveCode();
       currentLang = document.getElementById('langSel').value;
       const names = { java: 'Main.java', python: 'solution.py', javascript: 'solution.js', cpp: 'main.cpp', c: 'main.c' };
-      document.getElementById('fileName').textContent = names[currentLang] || 'solution';
+      const fnEl = document.getElementById('fileName');
+      if (fnEl) fnEl.textContent = names[currentLang] || 'solution';
       if (monacoEditor) {
         const lm = { java: 'java', python: 'python', javascript: 'javascript', cpp: 'cpp', c: 'c' };
         monaco.editor.setModelLanguage(monacoEditor.getModel(), lm[currentLang] || 'plaintext');
@@ -1727,25 +1775,126 @@
       }
     }
 
-    // ── RUN CODE ──────────────────────────────────────────────────────────────
     async function runCode() {
+      const q = questions[currentQ];
+      if (!q) return;
+
       saveCode();
       const btn = document.getElementById('runBtn');
-      btn.disabled = true; btn.innerHTML = '<div class="spin"></div>';
       const out = document.getElementById('outputArea');
-      out.className = 'out-area'; out.textContent = 'Running…';
+      const tcContainer = document.getElementById('testResultsContainer');
+      const useCustom = document.getElementById('useCustomInput').checked;
+      const customVal = document.getElementById('customInput').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spin"></div> Running...';
+
+      out.className = 'out-area';
+      out.textContent = 'Running...';
+
+      if (tcContainer && !useCustom) {
+        tcContainer.innerHTML = q.testCases.map((_, i) => `
+          <div class="tc-item" id="tc-row-${i}">
+            <span>Test Case ${i + 1}</span>
+            <span class="status-text">Pending...</span>
+          </div>
+        `).join('');
+      } else if (tcContainer) {
+        tcContainer.innerHTML = '<div style="padding:10px;color:var(--text3);text-align:center;">Running Custom Input...</div>';
+      }
+
+      const code = monacoEditor.getValue();
+
+      // Custom Input Mode
+      if (useCustom) {
+        try {
+          const res = await apiFetch('/run', 'POST', {
+            code: code,
+            language: currentLang,
+            stdin: customVal
+          });
+          const output = res.stdout || res.stderr || 'No output';
+          out.textContent = output;
+          if (res.stderr) out.className = 'out-area err';
+          else out.className = 'out-area';
+        } catch (e) {
+          out.textContent = 'Error: ' + e.message;
+          out.className = 'out-area err';
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '▶ Run';
+        }
+        return;
+      }
+
+      // Standard Test Case Mode
+      let allPassed = true;
+      let errorOccurred = false;
+
       try {
-        const res = await apiFetch('/run', 'POST', {
-          code: monacoEditor.getValue(),
-          language: currentLang,
-          stdin: document.getElementById('customInput').value || (questions[currentQ]?.testCases[0]?.input || '')
-        });
-        if (res.stderr) { out.className = 'out-area err'; out.textContent = '❌ Error:\n' + res.stderr; }
-        else { out.className = 'out-area ok'; out.textContent = res.stdout || '(no output)'; }
+        // Execute sequentially to avoid Rate Limits on free API
+        for (let i = 0; i < q.testCases.length; i++) {
+          const tc = q.testCases[i];
+          const row = document.getElementById(`tc-row-${i}`);
+          if (row) {
+            row.classList.add('running');
+            row.querySelector('.status-text').textContent = 'Running...';
+          }
+
+          try {
+            const res = await apiFetch('/run', 'POST', {
+              code: code,
+              language: currentLang,
+              stdin: tc.input
+            });
+
+            // Remove running class
+            if (row) row.classList.remove('running');
+
+            // Check details
+            const userOut = (res.stdout || '').trim().replace(/\r\n/g, '\n');
+            const expectedOut = (tc.expected || '').trim().replace(/\r\n/g, '\n');
+            const isError = !!res.stderr;
+            const isPass = !isError && userOut === expectedOut;
+
+            if (!isPass) allPassed = false;
+
+            if (row) {
+              row.className = `tc-item ${isPass ? 'pass' : 'fail'}`;
+              row.innerHTML = `
+                <span>Test Case ${i + 1}</span>
+                <span style="font-weight:600">${isPass ? 'Passed' : 'Failed'}</span>
+              `;
+            }
+
+          } catch (err) {
+            console.error(err);
+            errorOccurred = true;
+            if (row) {
+              row.className = 'tc-item fail';
+              row.innerHTML = `<span>Test Case ${i + 1}</span><span>Error</span>`;
+            }
+          }
+        }
+
+        if (errorOccurred) {
+          out.className = 'out-area err';
+          out.textContent = 'Errors occurred during execution. API might be busy.';
+        } else if (allPassed) {
+          out.className = 'out-area ok';
+          out.textContent = 'All test cases passed! Great job. 🚀';
+        } else {
+          out.className = 'out-area err';
+          out.textContent = 'Some test cases failed. Check your logic.';
+        }
+
       } catch (e) {
-        out.className = 'out-area err'; out.textContent = '❌ ' + e.message;
+        out.className = 'out-area err';
+        out.textContent = 'Execution Error: ' + e.message;
+        if (tcContainer) tcContainer.innerHTML = `<div style="color:var(--red)">Error running tests.</div>`;
       } finally {
-        btn.disabled = false; btn.textContent = '▶ Run';
+        btn.disabled = false;
+        btn.textContent = '▶ Run';
       }
     }
 

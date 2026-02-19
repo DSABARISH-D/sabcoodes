@@ -13,12 +13,20 @@ router.post('/start', authenticate, async (req, res) => {
         if (existing) {
             const qIds = JSON.parse(existing.question_ids);
             const questions = qIds.map(id => get(db, 'SELECT id,title,description,difficulty,starter_code,test_cases FROM questions WHERE id=?', [id])).filter(Boolean);
-            const user = get(db, 'SELECT allowed_languages FROM users WHERE id=?', [userId]);
-            return res.json({
-                sessionId: existing.id,
-                questions,
-                allowedLanguages: JSON.parse(user?.allowed_languages || '["java","python","javascript","cpp","c"]')
-            });
+
+            // If questions found, return them. logic: if we found at least 1, verify. 
+            // Better: if we found ALL. But for robustness, if we found > 0.
+            if (questions.length > 0) {
+                const user = get(db, 'SELECT allowed_languages FROM users WHERE id=?', [userId]);
+                return res.json({
+                    sessionId: existing.id,
+                    questions,
+                    allowedLanguages: JSON.parse(user?.allowed_languages || '["java","python","javascript","cpp","c"]')
+                });
+            }
+
+            // If active session has invalid questions (e.g. DB reseeded), invalidate it
+            run(db, "UPDATE sessions SET status='abandoned' WHERE id=?", [existing.id]);
         }
 
         // Get user's seen questions and allowed languages
