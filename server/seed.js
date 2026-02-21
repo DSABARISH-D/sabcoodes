@@ -1,4 +1,4 @@
-const { getDb, run } = require('./db');
+const { getDb, run, query } = require('./db');
 
 const questions = [
     {
