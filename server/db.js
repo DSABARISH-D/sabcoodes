@@ -1,103 +1,25 @@
-const path = require('path');
-const fs = require('fs');
-const initSqlJs = require('sql.js');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'platform.db');
-let _db = null;
+let _connected = false;
 
 async function getDb() {
-  if (_db) return _db;
-  const SQL = await initSqlJs();
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    _db = new SQL.Database(fileBuffer);
-  } else {
-    _db = new SQL.Database();
-  }
+  if (_connected) return mongoose;
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI environment variable is not set');
+  await mongoose.connect(uri);
+  _connected = true;
 
-  _db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT DEFAULT 'user',
-      allowed_languages TEXT DEFAULT '["java","python","javascript","cpp","c"]',
-      seen_questions TEXT DEFAULT '[]',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS questions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      difficulty TEXT DEFAULT 'Easy',
-      starter_code TEXT,
-      test_cases TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS sessions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      question_ids TEXT NOT NULL,
-      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      submitted_at DATETIME,
-      score INTEGER DEFAULT 0,
-      total INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'active'
-    );
-    CREATE TABLE IF NOT EXISTS submissions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      session_id INTEGER NOT NULL,
-      user_id INTEGER NOT NULL,
-      question_id INTEGER NOT NULL,
-      code TEXT NOT NULL,
-      language TEXT NOT NULL,
-      passed INTEGER DEFAULT 0,
-      total INTEGER DEFAULT 0,
-      status TEXT DEFAULT 'pending',
-      submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Migrate: add columns if they don't exist (for existing DBs)
-  try { _db.run(`ALTER TABLE users ADD COLUMN allowed_languages TEXT DEFAULT '["java","python","javascript","cpp","c"]'`); } catch (e) { }
-  try { _db.run(`ALTER TABLE users ADD COLUMN seen_questions TEXT DEFAULT '[]'`); } catch (e) { }
-
-  // Auto-create admin account if not exists (needed on Vercel cold start)
-  const existingAdmin = query(_db, "SELECT id FROM users WHERE username = 'admin'");
-  if (existingAdmin.length === 0) {
+  // Auto-create admin if not exists
+  const User = require('./models/User');
+  const existing = await User.findOne({ username: 'admin' });
+  if (!existing) {
     const hash = bcrypt.hashSync('admin123', 10);
-    _db.run(`INSERT INTO users (username, password, role) VALUES ('admin', '${hash}', 'admin')`);
+    await User.create({ username: 'admin', password: hash, role: 'admin' });
     console.log('✅ Admin auto-created: admin / admin123');
   }
 
-  save();
-  return _db;
+  return mongoose;
 }
 
-function save() {
-  if (!_db) return;
-  const data = _db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
-}
-
-function query(db, sql, params = []) {
-  const stmt = db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) rows.push(stmt.getAsObject());
-  stmt.free();
-  return rows;
-}
-
-function run(db, sql, params = []) {
-  db.run(sql, params);
-  save();
-  return { lastInsertRowid: query(db, 'SELECT last_insert_rowid() as id')[0]?.id };
-}
-
-function get(db, sql, params = []) {
-  return query(db, sql, params)[0] || null;
-}
-
-module.exports = { getDb, query, run, get, save };
+module.exports = { getDb };

@@ -1,14 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, query, run, get } = require('../db');
+const { getDb } = require('../db');
 const { authenticate } = require('../middleware/auth');
 const { executeCode, LANG_IDS } = require('./run');
+const Session = require('../models/Session');
+const Question = require('../models/Question');
+const Submission = require('../models/Submission');
 
 router.post('/', authenticate, async (req, res) => {
     const { sessionId, answers } = req.body;
     try {
-        const db = await getDb();
-        const session = get(db, 'SELECT * FROM sessions WHERE id = ? AND user_id = ?', [sessionId, req.user.id]);
+        await getDb();
+        const session = await Session.findOne({ _id: sessionId, user_id: req.user.id });
         if (!session) return res.status(404).json({ error: 'Session not found' });
         if (session.status === 'submitted') return res.status(400).json({ error: 'Already submitted' });
 
@@ -16,7 +19,7 @@ router.post('/', authenticate, async (req, res) => {
         const results = [];
 
         for (const answer of answers) {
-            const question = get(db, 'SELECT * FROM questions WHERE id = ?', [answer.questionId]);
+            const question = await Question.findById(answer.questionId);
             if (!question) continue;
             const testCases = JSON.parse(question.test_cases);
             const langId = LANG_IDS[answer.language] || 62;
@@ -32,13 +35,19 @@ router.post('/', authenticate, async (req, res) => {
 
             totalPassed += passed;
             totalTests += testCases.length;
-            run(db, `INSERT INTO submissions (session_id, user_id, question_id, code, language, passed, total, status) VALUES (?,?,?,?,?,?,?,?)`,
-                [sessionId, req.user.id, answer.questionId, answer.code, answer.language, passed, testCases.length, passed === testCases.length ? 'accepted' : 'wrong_answer']);
+            await Submission.create({
+                session_id: sessionId, user_id: req.user.id,
+                question_id: answer.questionId, code: answer.code,
+                language: answer.language, passed, total: testCases.length,
+                status: passed === testCases.length ? 'accepted' : 'wrong_answer'
+            });
             results.push({ questionId: answer.questionId, title: question.title, passed, total: testCases.length, testCases: tcResults });
         }
 
         const score = totalTests > 0 ? Math.round((totalPassed / totalTests) * 100) : 0;
-        run(db, `UPDATE sessions SET status='submitted', submitted_at=CURRENT_TIMESTAMP, score=?, total=? WHERE id=?`, [score, totalTests, sessionId]);
+        await Session.findByIdAndUpdate(sessionId, {
+            status: 'submitted', submitted_at: new Date(), score, total: totalTests
+        });
         res.json({ score, totalPassed, totalTests, results });
     } catch (e) {
         res.status(500).json({ error: e.message });

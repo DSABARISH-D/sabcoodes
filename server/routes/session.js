@@ -1,65 +1,68 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, query, run, get } = require('../db');
+const { getDb } = require('../db');
 const { authenticate } = require('../middleware/auth');
+const User = require('../models/User');
+const Question = require('../models/Question');
+const Session = require('../models/Session');
 
 router.post('/start', authenticate, async (req, res) => {
     try {
-        const db = await getDb();
+        await getDb();
         const userId = req.user.id;
 
         // Check for existing active session
-        const existing = get(db, `SELECT * FROM sessions WHERE user_id = ? AND status = 'active'`, [userId]);
+        const existing = await Session.findOne({ user_id: userId, status: 'active' });
         if (existing) {
-            const qIds = JSON.parse(existing.question_ids);
-            const questions = qIds.map(id => get(db, 'SELECT id,title,description,difficulty,starter_code,test_cases FROM questions WHERE id=?', [id])).filter(Boolean);
-
-            // If questions found, return them. logic: if we found at least 1, verify. 
-            // Better: if we found ALL. But for robustness, if we found > 0.
+            const questions = await Question.find({ _id: { $in: existing.question_ids } })
+                .select('_id title description difficulty starter_code test_cases');
             if (questions.length > 0) {
-                const user = get(db, 'SELECT allowed_languages FROM users WHERE id=?', [userId]);
+                const user = await User.findById(userId);
                 return res.json({
-                    sessionId: existing.id,
-                    questions,
-                    allowedLanguages: JSON.parse(user?.allowed_languages || '["java","python","javascript","cpp","c"]')
+                    sessionId: existing._id,
+                    questions: questions.map(formatQuestion),
+                    allowedLanguages: user?.allowed_languages || ['java', 'python', 'javascript', 'cpp', 'c']
                 });
             }
-
-            // If active session has invalid questions (e.g. DB reseeded), invalidate it
-            run(db, "UPDATE sessions SET status='abandoned' WHERE id=?", [existing.id]);
+            // Invalid session — abandon it
+            await Session.findByIdAndUpdate(existing._id, { status: 'abandoned' });
         }
 
-        // Get user's seen questions and allowed languages
-        const user = get(db, 'SELECT allowed_languages, seen_questions FROM users WHERE id=?', [userId]);
-        const seenIds = JSON.parse(user?.seen_questions || '[]');
-        const allowedLangs = JSON.parse(user?.allowed_languages || '["java","python","javascript","cpp","c"]');
+        // Get user info
+        const user = await User.findById(userId);
+        const seenIds = user?.seen_questions || [];
+        const allowedLangs = user?.allowed_languages || ['java', 'python', 'javascript', 'cpp', 'c'];
 
-        // Get all questions excluding already-seen ones
-        let available = query(db, 'SELECT id FROM questions');
-        let unseen = available.filter(q => !seenIds.includes(q.id));
+        // Get unseen questions
+        const allQuestions = await Question.find({});
+        let unseen = allQuestions.filter(q => !seenIds.includes(String(q._id)));
 
-        // If not enough unseen questions, reset (allow repeats from the full pool excluding last session)
         if (unseen.length < 2) {
-            unseen = available; // reset — all questions available again
-            run(db, 'UPDATE users SET seen_questions = ? WHERE id = ?', ['[]', userId]);
+            unseen = allQuestions;
+            await User.findByIdAndUpdate(userId, { seen_questions: [] });
         }
 
-        // Pick 2 random from unseen
+        // Pick 2 random
         const shuffled = unseen.sort(() => Math.random() - 0.5);
         const picked = shuffled.slice(0, 2);
-        const qIds = picked.map(q => q.id);
+        const qIds = picked.map(q => String(q._id));
 
-        // Mark these questions as seen for this user
-        const newSeen = JSON.stringify([...new Set([...seenIds, ...qIds])]);
-        run(db, 'UPDATE users SET seen_questions = ? WHERE id = ?', [newSeen, userId]);
+        // Mark as seen
+        const newSeen = [...new Set([...seenIds, ...qIds])];
+        await User.findByIdAndUpdate(userId, { seen_questions: newSeen });
 
         // Create session
-        const session = run(db, `INSERT INTO sessions (user_id, question_ids, total) VALUES (?,?,?)`,
-            [userId, JSON.stringify(qIds), qIds.length * 5]);
+        const session = await Session.create({
+            user_id: userId,
+            question_ids: qIds,
+            total: qIds.length * 5
+        });
 
-        const questions = qIds.map(id => get(db, 'SELECT id,title,description,difficulty,starter_code,test_cases FROM questions WHERE id=?', [id])).filter(Boolean);
-
-        res.json({ sessionId: session.lastInsertRowid, questions, allowedLanguages: allowedLangs });
+        res.json({
+            sessionId: session._id,
+            questions: picked.map(formatQuestion),
+            allowedLanguages: allowedLangs
+        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -67,21 +70,31 @@ router.post('/start', authenticate, async (req, res) => {
 
 router.get('/current', authenticate, async (req, res) => {
     try {
-        const db = await getDb();
-        const session = get(db, `SELECT * FROM sessions WHERE user_id = ? AND status = 'active' ORDER BY started_at DESC LIMIT 1`, [req.user.id]);
+        await getDb();
+        const session = await Session.findOne({ user_id: req.user.id, status: 'active' }).sort({ started_at: -1 });
         if (!session) return res.status(404).json({ error: 'No active session' });
-        const qIds = JSON.parse(session.question_ids);
-        const questions = qIds.map(id => get(db, 'SELECT id,title,description,difficulty,starter_code,test_cases FROM questions WHERE id=?', [id])).filter(Boolean);
-        const user = get(db, 'SELECT allowed_languages FROM users WHERE id=?', [req.user.id]);
+        const questions = await Question.find({ _id: { $in: session.question_ids } });
+        const user = await User.findById(req.user.id);
         res.json({
-            sessionId: session.id,
-            questions,
+            sessionId: session._id,
+            questions: questions.map(formatQuestion),
             startedAt: session.started_at,
-            allowedLanguages: JSON.parse(user?.allowed_languages || '["java","python","javascript","cpp","c"]')
+            allowedLanguages: user?.allowed_languages || ['java', 'python', 'javascript', 'cpp', 'c']
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
+
+function formatQuestion(q) {
+    return {
+        id: q._id,
+        title: q.title,
+        description: q.description,
+        difficulty: q.difficulty,
+        starter_code: q.starter_code,
+        test_cases: q.test_cases
+    };
+}
 
 module.exports = router;
